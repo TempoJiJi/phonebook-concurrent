@@ -19,7 +19,7 @@ entry *findName(char lastname[], entry *pHead)
             pHead->dtl = (pdetail) malloc( sizeof( detail));
             return pHead;
         }
-        dprintf("find string = %s\n", pHead->lastName);
+        dprintf("find string = %s", pHead->lastName);
         pHead = pHead->pNext;
     }
     return NULL;
@@ -29,12 +29,22 @@ append_a *new_append_a(char *ptr, char *eptr, int tid, int ntd, entry *start)
 {
     append_a *app = (append_a *) malloc(sizeof(append_a));
 
-    app->ptr = ptr;
-    app->eptr = eptr;
-    app->tid = tid;
-    app->nthread = ntd;
-    app->entryStart = start;
+    /* 每個thread的起點 */    
+    app->ptr = ptr;	//map + MAX_LAST_NAME_SIZE * i
 
+    /* mapping 的終點 */
+    app->eptr = eptr;	// map + fs
+
+    /* DEBUG 用的，確認是哪個thread */
+    app->tid = tid;	// i
+
+    /* Thread的數量 */
+    app->nthread = ntd;	    //THREAD_NUM
+
+    /* 從entry pool的某個起點開始 */
+    app->entryStart = start;	//entry_pool + i
+
+    /* 將entry_pool的起點(已分爲4個）設爲app的起點 */
     app->pHead = (app->pLast = app->entryStart);
 
     return app;
@@ -42,29 +52,21 @@ append_a *new_append_a(char *ptr, char *eptr, int tid, int ntd, entry *start)
 
 void append(void *arg)
 {
-    struct timespec start, end;
-    double cpu_time;
-
-    clock_gettime( CLOCK_REALTIME, &start);
-
     append_a *app = (append_a *) arg;
 
-    int count = 0;
-    entry *j = app->entryStart;
-    for (char *i = app->ptr; i < app->eptr;
-            i += MAX_LAST_NAME_SIZE * app->nthread,
-            j += app->nthread,count++) {
-        app->pLast->pNext = j;
-        app->pLast = app->pLast->pNext;
+    char *i = app->ptr;	
+    entry *j = app->entryStart;	    
 
-        app->pLast->lastName = i;
-        dprintf("thread %d append string = %s\n", app->tid, app->pLast->lastName);
-        app->pLast->pNext = NULL;
+    while(i < app->eptr){
+	app->pLast->pNext = j;	//Current last->j 
+	app->pLast = app->pLast->pNext;	    // Current last become j
+
+        app->pLast->lastName = i;   
+        app->pLast->pNext = NULL;   
+	
+        i += MAX_LAST_NAME_SIZE * app->nthread;
+        j += app->nthread;	
     }
-    clock_gettime(CLOCK_REALTIME, &end);
-    cpu_time = diff_in_second(start, end);
-
-    dprintf("thread take %lf sec, count %d\n", cpu_time, count);
 
     pthread_exit(NULL);
 }
@@ -72,20 +74,7 @@ void append(void *arg)
 void show_entry(entry *pHead)
 {
     while (pHead != NULL) {
-        printf("lastName = %s\n", pHead->lastName);
+        printf("%s", pHead->lastName);
         pHead = pHead->pNext;
     }
-}
-
-static double diff_in_second(struct timespec t1, struct timespec t2)
-{
-    struct timespec diff;
-    if (t2.tv_nsec-t1.tv_nsec < 0) {
-        diff.tv_sec  = t2.tv_sec - t1.tv_sec - 1;
-        diff.tv_nsec = t2.tv_nsec - t1.tv_nsec + 1000000000;
-    } else {
-        diff.tv_sec  = t2.tv_sec - t1.tv_sec;
-        diff.tv_nsec = t2.tv_nsec - t1.tv_nsec;
-    }
-    return (diff.tv_sec + diff.tv_nsec / 1000000000.0);
 }

@@ -28,13 +28,9 @@ static double diff_in_second(struct timespec t1, struct timespec t2)
 
 int main(int argc, char *argv[])
 {
-#ifndef OPT
     FILE *fp;
     int i = 0;
     char line[MAX_LAST_NAME_SIZE];
-#else
-    struct timespec mid;
-#endif
     struct timespec start, end;
     double cpu_time1, cpu_time2;
 
@@ -54,6 +50,7 @@ int main(int argc, char *argv[])
     file_align(DICT_FILE, ALIGN_FILE, MAX_LAST_NAME_SIZE);
     int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
     off_t fs = fsize( ALIGN_FILE);
+
 #endif
 
     /* build the entry */
@@ -81,37 +78,30 @@ int main(int argc, char *argv[])
 
     /* allocate at beginning */
     entry *entry_pool = (entry *) malloc(sizeof(entry) * fs / MAX_LAST_NAME_SIZE);
-
     assert(entry_pool && "entry_pool error");
 
     pthread_setconcurrency(THREAD_NUM + 1);
 
-    pthread_t *tid = (pthread_t *) malloc(sizeof( pthread_t) * THREAD_NUM);
+    /* Malloc for Pthread id and append_a */
+    pthread_t *tid = (pthread_t *) malloc(sizeof(pthread_t) * THREAD_NUM);
     append_a **app = (append_a **) malloc(sizeof(append_a *) * THREAD_NUM);
-    for (int i = 0; i < THREAD_NUM; i++)
-        app[i] = new_append_a(map + MAX_LAST_NAME_SIZE * i, map + fs, i, THREAD_NUM, entry_pool + i);
 
-    clock_gettime(CLOCK_REALTIME, &mid);
-    for (int i = 0; i < THREAD_NUM; i++)
+    for (int i = 0; i < THREAD_NUM; i++){
+        app[i] = new_append_a(map + MAX_LAST_NAME_SIZE * i, 
+				map + fs, i, THREAD_NUM, entry_pool + i);
         pthread_create( &tid[i], NULL, (void *) &append, (void *) app[i]);
+    }
 
     for (int i = 0; i < THREAD_NUM; i++)
         pthread_join(tid[i], NULL);
 
-    entry *etmp;
-    pHead = pHead->pNext;
-    for (int i = 0; i < THREAD_NUM; i++) {
-        if (i == 0) {
-            pHead = app[i]->pHead->pNext;
-            dprintf("Connect %d head string %s %p\n", i, app[i]->pHead->pNext->lastName, app[i]->ptr);
-        } else {
-            etmp->pNext = app[i]->pHead->pNext;
-            dprintf("Connect %d head string %s %p\n", i, app[i]->pHead->pNext->lastName, app[i]->ptr);
-        }
+    entry *etmp = pHead;
+    pHead = app[0]->pHead;
+    etmp = app[0]->pLast;
 
+    for (int i = 1; i < THREAD_NUM; i++) {
+        etmp->pNext = app[i]->pHead;
         etmp = app[i]->pLast;
-        dprintf("Connect %d tail string %s %p\n", i, app[i]->pLast->lastName, app[i]->ptr);
-        dprintf("round %d\n", i);
     }
 
     clock_gettime(CLOCK_REALTIME, &end);
@@ -138,6 +128,11 @@ int main(int argc, char *argv[])
 #endif
 
     e = pHead;
+#if defined(OPT)
+    //show_entry(e);
+    e = pHead;
+#endif
+
 
     /* the givn last name to find */
     char input[MAX_LAST_NAME_SIZE] = "zyxel";

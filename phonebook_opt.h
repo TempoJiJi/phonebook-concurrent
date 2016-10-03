@@ -8,6 +8,9 @@
 
 #define OPT 1
 
+#define THREAD_NUM 4
+#define POOL_SIZE 8
+
 typedef struct _detail {
     char firstName[16];
     char email[16];
@@ -33,17 +36,14 @@ entry *findName(char lastname[], entry *pHead);
 typedef struct _append_a {
     char *ptr;
     char *eptr;
-    int tid;
-    int nthread;
     entry *entryStart;
     entry *pHead;
     entry *pLast;
 } append_a;
 
-append_a *new_append_a(char *ptr, char *eptr, int tid, int ntd, entry *start);
-
+append_a *new_append_a(char *ptr, char *eptr, entry *start,int i);
 void append(void *arg);
-
 void show_entry(entry *pHead);
+void try_print();
 
 #endif

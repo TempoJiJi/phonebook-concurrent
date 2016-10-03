@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 
 #include IMPL
+#include "threadpool.h"
 
 #define DICT_FILE "./dictionary/words.txt"
 
@@ -50,7 +51,6 @@ int main(int argc, char *argv[])
     file_align(DICT_FILE, ALIGN_FILE, MAX_LAST_NAME_SIZE);
     int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
     off_t fs = fsize( ALIGN_FILE);
-
 #endif
 
     /* build the entry */
@@ -65,10 +65,6 @@ int main(int argc, char *argv[])
 #endif
 
 #if defined(OPT)
-
-#ifndef THREAD_NUM
-#define THREAD_NUM 4
-#endif
 
     clock_gettime(CLOCK_REALTIME, &start);
 
@@ -86,18 +82,21 @@ int main(int argc, char *argv[])
     pthread_t *tid = (pthread_t *) malloc(sizeof(pthread_t) * THREAD_NUM);
     append_a **app = (append_a **) malloc(sizeof(append_a *) * THREAD_NUM);
 
-    for (int i = 0; i < THREAD_NUM; i++){
-        app[i] = new_append_a(map + MAX_LAST_NAME_SIZE * i, 
-				map + fs, i, THREAD_NUM, entry_pool + i);
-        pthread_create( &tid[i], NULL, (void *) &append, (void *) app[i]);
+    threadpool_t *pool = threadpool_create(THREAD_NUM, POOL_SIZE ,0);
+
+    for (int i = 0; i < THREAD_NUM; i++) {
+        app[i] = new_append_a(map + MAX_LAST_NAME_SIZE * i,
+                              map + fs, entry_pool + i, i);
+        threadpool_add(pool, &append, (void *)app[i], 0);
     }
 
-    for (int i = 0; i < THREAD_NUM; i++)
-        pthread_join(tid[i], NULL);
+    /* Graceful shutdown */
+    threadpool_destroy(pool, 1);
 
     entry *etmp = pHead;
     pHead = app[0]->pHead;
     etmp = app[0]->pLast;
+
 
     for (int i = 1; i < THREAD_NUM; i++) {
         etmp->pNext = app[i]->pHead;
@@ -128,10 +127,6 @@ int main(int argc, char *argv[])
 #endif
 
     e = pHead;
-#if defined(OPT)
-    //show_entry(e);
-    e = pHead;
-#endif
 
 
     /* the givn last name to find */

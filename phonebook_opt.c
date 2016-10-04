@@ -26,9 +26,9 @@ entry *findName(char lastname[], entry *pHead)
     return NULL;
 }
 
-append_a *new_append_a(char *ptr, char *eptr, entry *start,int i)
+args *new_args(char *ptr, char *eptr, entry *start,int i)
 {
-    append_a *app = (append_a *) malloc(sizeof(append_a));
+    args *app = (args *) malloc(sizeof(args));
 
     app->ptr = ptr;	//map + MAX_LAST_NAME_SIZE * i
     app->eptr = eptr;	// map + fs
@@ -40,12 +40,12 @@ append_a *new_append_a(char *ptr, char *eptr, entry *start,int i)
 
 void append(void *arg)
 {
-    append_a *app = (append_a *) arg;
+    args *app = (args *) arg;
 
     char *i = app->ptr;
     entry *j = app->entryStart;
 
-    while(i < app->eptr) {
+    while (i < app->eptr) {
         app->pLast->pNext = j;	//Current last->j
         app->pLast = app->pLast->pNext;	    // Current last become j
 
@@ -59,7 +59,7 @@ void append(void *arg)
 
 void show_entry(entry *pHead)
 {
-    while (pHead != NULL) {
+    while (pHead) {
         printf("%s", pHead->lastName);
         pHead = pHead->pNext;
     }

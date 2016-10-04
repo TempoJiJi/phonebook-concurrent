@@ -9,7 +9,7 @@
 
 #define MAX_BUFF_SIZE 1000
 
-void file_align(char *org, char *mod, int pad)
+void file_align(char *org, char *mod, int padd)
 {
     FILE *fd0 = fopen(org, "r");
     FILE *fd1 = fopen(mod, "w+");
@@ -17,15 +17,15 @@ void file_align(char *org, char *mod, int pad)
     char rbuf[MAX_BUFF_SIZE];
     int suffix;
 
-    char *wbuf = (char *) malloc(sizeof(char) * pad);
+    char *wbuf = (char *) malloc(sizeof(char) * padd);
 
     while (fgets(rbuf, sizeof(rbuf), fd0)) {
-        memset(wbuf, '\0', pad);
+        memset(wbuf, '\0', padd);
 
-        if ((suffix = (pad - strlen(rbuf))) != 0)
+        if ((suffix = (padd - strlen(rbuf))) != 0)
             strcpy(wbuf, rbuf);
 
-        fwrite(wbuf, pad, 1, fd1);
+        fwrite(wbuf, padd, 1, fd1);
     }
 
     fclose(fd0);

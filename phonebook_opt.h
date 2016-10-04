@@ -33,15 +33,15 @@ typedef struct __PHONE_BOOK_ENTRY {
 
 entry *findName(char lastname[], entry *pHead);
 
-typedef struct _append_a {
+typedef struct _ARGS_ {
     char *ptr;
     char *eptr;
     entry *entryStart;
     entry *pHead;
     entry *pLast;
-} append_a;
+} args;
 
-append_a *new_append_a(char *ptr, char *eptr, entry *start,int i);
+args *new_args(char *ptr, char *eptr, entry *start,int i);
 void append(void *arg);
 void show_entry(entry *pHead);
 void try_print();

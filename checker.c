@@ -6,13 +6,13 @@
 typedef struct __ENTRY {
     char lastName[16];
     struct __ENTRY *pNext;
-} entry;
+} entry_c;
 
 typedef struct _TABLE {
-    entry **table;
+    entry_c **table;
 } hash_t;
 
-int hash(char *str)
+int hash_c(char *str)
 {
     unsigned int hash_value = 0;
     while(*str)
@@ -20,13 +20,13 @@ int hash(char *str)
     return (hash_value % TABLE_SIZE);
 }
 
-hash_t *create_hash_table()
+hash_t *create_hash_table_c()
 {
     hash_t *my_table;
 
     /* Allocate memory for hashtable*/
     my_table = malloc(sizeof(hash_t));
-    my_table->table = malloc(sizeof(entry *) * TABLE_SIZE);
+    my_table->table = malloc(sizeof(entry_c *) * TABLE_SIZE);
 
     /* Initialize the elements of the table */
     for(int i=0; i<TABLE_SIZE; i++)
@@ -35,10 +35,10 @@ hash_t *create_hash_table()
     return my_table;
 }
 
-entry *findName(char *lastName, hash_t *hashtable)
+entry_c *findName_c(char *lastName, hash_t *hashtable)
 {
-    entry *list;
-    int hash_value = hash(lastName);
+    entry_c *list;
+    int hash_value = hash_c(lastName);
 
     /*   Searching from hash_table   */
     for(list = hashtable->table[hash_value] ; list!=NULL ; list = list->pNext) {
@@ -47,45 +47,47 @@ entry *findName(char *lastName, hash_t *hashtable)
             return list;
         }
     }
-
     printf("%s DOES NOT EXIST!\n",lastName);
     /* FAIL */
     return NULL;
 }
 
-void append(char *lastName,hash_t *hashtable)
+void append_c(char *lastName,hash_t *hashtable)
 {
-    entry *new_entry;
-    int hash_value = hash(lastName);
+    entry_c *new_entry_c;
+    int hash_value = hash_c(lastName);
 
-    new_entry = (entry *) malloc(sizeof(entry));
+    new_entry_c = (entry_c *) malloc(sizeof(entry_c));
 
-    /* Creating entry list by hash table */
-    memcpy(new_entry->lastName , lastName,strlen(lastName));
-    new_entry->pNext = hashtable->table[hash_value];
-    hashtable->table[hash_value] = new_entry;
+    /* Creating entry_c list by hash table */
+    strcpy(new_entry_c->lastName , lastName);
+    new_entry_c->pNext = hashtable->table[hash_value];
+    hashtable->table[hash_value] = new_entry_c;
 }
 
-int main()
+void compare(char *a, char *b)
 {
     int i = 0;
-    FILE *fp1 = fopen("opt_entry","r");
-    FILE *fp2 = fopen("./dictionary/words.txt","r");
+
+    /* fp2 is orginal file */
+    FILE *fp1 = fopen(a, "r");
+    FILE *fp2 = fopen(b, "r");
+
     char line[16];
-    entry *pHead,*e;
-    pHead = (entry *) malloc (sizeof(entry));
+    entry_c *pHead,*e;
+    pHead = (entry_c *) malloc (sizeof(entry_c));
     e = pHead;
     e->pNext = NULL;
 
     hash_t *hash_table;
-    hash_table = create_hash_table();
+    hash_table = create_hash_table_c();
 
     while(fgets(line,sizeof(line),fp1)) {
         while (line[i] != '\0')
             i++;
         line[i - 1] = '\0';
         i = 0;
-        append(line, hash_table);
+        append_c(line, hash_table);
     }
 
     while(fgets(line,sizeof(line),fp2)) {
@@ -93,7 +95,6 @@ int main()
             i++;
         line[i - 1] = '\0';
         i = 0;
-        findName(line, hash_table);
+        findName_c(line, hash_table);
     }
-    printf("Check Done!\n");
 }

@@ -8,16 +8,13 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/mman.h>
-#include <fcntl.h>
 
 #include IMPL
 #include "threadpool.h"
-#include "field_alignment.c"
-#include "debug.h"
-#include "checker.c"
+#include "lockfree_tpool.h"
 
 #define DICT_FILE "./dictionary/words.txt"
-#define ALIGN_FILE "aligned.txt"
+#define ALIGN_FILE "aligned_field"
 
 static double diff_in_second(struct timespec t1, struct timespec t2)
 {
@@ -61,6 +58,9 @@ int main(int argc, char *argv[])
 #endif
 
 #if defined(OPT)
+#include <fcntl.h>
+#include "field_alignment.c"
+#include "debug.h"
 
     file_align(DICT_FILE, ALIGN_FILE, MAX_LAST_NAME_SIZE);
     int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
@@ -79,19 +79,27 @@ int main(int argc, char *argv[])
     pthread_setconcurrency(THREAD_NUM + 1);
 
     /* Malloc for Pthread id and args */
-    pthread_t *tid = (pthread_t *) malloc(sizeof(pthread_t) * THREAD_NUM);
     args **app = (args **) malloc(sizeof(args *) * THREAD_NUM);
 
-    threadpool_t *pool = threadpool_create(THREAD_NUM, POOL_SIZE ,0);
 
+#if defined(LOCKFREE)
+    void *pool = tpool_init(THREAD_NUM);
     for (int i = 0; i < THREAD_NUM; i++) {
         app[i] = new_args(map + MAX_LAST_NAME_SIZE * i,
-                              map + fs, entry_pool + i, i);
+                          map + fs, entry_pool + i, i);
+        tpool_add_work(pool, &append, (void *)app[i]);
+    }
+    tpool_destroy(pool , 1);
+#else
+    threadpool_t *pool = threadpool_create(THREAD_NUM, POOL_SIZE ,0);
+    for (int i = 0; i < THREAD_NUM; i++) {
+        app[i] = new_args(map + MAX_LAST_NAME_SIZE * i,
+                          map + fs, entry_pool + i, i);
         threadpool_add(pool, &append, (void *)app[i], 0);
     }
-
     /* Graceful shutdown */
     threadpool_destroy(pool, 1);
+#endif
 
     entry *etmp = pHead;
     pHead = app[0]->pHead;
@@ -122,7 +130,9 @@ int main(int argc, char *argv[])
     fclose(fp);
 #endif
 
-#if defined COMPARE
+#if defined CHECK
+#include "checker.c"
+
     e = pHead;
     FILE *fp = fopen("entry_words.txt","w+");
     while (e) {
@@ -131,6 +141,7 @@ int main(int argc, char *argv[])
     }
     fclose(fp);
     compare("entry_words.txt",DICT_FILE);
+
 #endif
 
     e = pHead;
@@ -164,11 +175,10 @@ int main(int argc, char *argv[])
     printf("execution time of findName() : %lf sec\n", cpu_time2);
 
 #ifndef OPT
-    while (pHead->pNext) free(pHead->pNext);
+    if (pHead->pNext) free(pHead->pNext);
     free(pHead);
 #else
     free(entry_pool);
-    free(tid);
     free(app);
     munmap(map, fs);
 #endif

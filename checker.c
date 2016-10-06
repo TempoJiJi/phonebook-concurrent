@@ -1,18 +1,20 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
+
+#include "phonebook_opt.h"
 #define TABLE_SIZE 5553
 
-typedef struct __ENTRY {
+typedef struct __OPT_ENTRY {
     char lastName[16];
-    struct __ENTRY *pNext;
-} entry_c;
+    struct __OPT_ENTRY *pNext;
+} opt_entry;
 
-typedef struct _TABLE {
-    entry_c **table;
-} hash_t;
+typedef struct _HASH_TABLE {
+    opt_entry **table;
+} hash_table;
 
-int hash_c(char *str)
+int hash(char *str)
 {
     unsigned int hash_value = 0;
     while(*str)
@@ -20,13 +22,13 @@ int hash_c(char *str)
     return (hash_value % TABLE_SIZE);
 }
 
-hash_t *create_hash_table_c()
+hash_table *create_hash_table()
 {
-    hash_t *my_table;
+    hash_table *my_table;
 
     /* Allocate memory for hashtable*/
-    my_table = malloc(sizeof(hash_t));
-    my_table->table = malloc(sizeof(entry_c *) * TABLE_SIZE);
+    my_table = malloc(sizeof(hash_table));
+    my_table->table = malloc(sizeof(opt_entry *) * TABLE_SIZE);
 
     /* Initialize the elements of the table */
     for(int i=0; i<TABLE_SIZE; i++)
@@ -35,34 +37,36 @@ hash_t *create_hash_table_c()
     return my_table;
 }
 
-entry_c *findName_c(char *lastName, hash_t *hashtable)
+void find_lastname(char *lastName, hash_table *hashtable)
 {
-    entry_c *list;
-    int hash_value = hash_c(lastName);
+    opt_entry *list;
+    int hash_value = hash(lastName);
 
     /*   Searching from hash_table   */
     for(list = hashtable->table[hash_value] ; list!=NULL ; list = list->pNext) {
         if(strcmp(lastName,list->lastName)==0) {
             printf("%s FOUND!\n",lastName);
-            return list;
+            return;
         }
     }
     printf("%s DOES NOT EXIST!\n",lastName);
     /* FAIL */
-    return NULL;
+    return;
 }
 
-void append_c(char *lastName,hash_t *hashtable)
+void append_ori(char *lastName,hash_table *hashtable)
 {
-    entry_c *new_entry_c;
-    int hash_value = hash_c(lastName);
+    opt_entry *new_opt_entry;
+    int hash_value = hash(lastName);
 
-    new_entry_c = (entry_c *) malloc(sizeof(entry_c));
+    printf("appending\n");
+    new_opt_entry = (opt_entry *) malloc(sizeof(char) * MAX_LAST_NAME_SIZE);
+    printf("appended\n");
 
-    /* Creating entry_c list by hash table */
-    strcpy(new_entry_c->lastName , lastName);
-    new_entry_c->pNext = hashtable->table[hash_value];
-    hashtable->table[hash_value] = new_entry_c;
+    /* Creating opt_entry list by hash table */
+    strcpy(new_opt_entry->lastName , lastName);
+    new_opt_entry->pNext = hashtable->table[hash_value];
+    hashtable->table[hash_value] = new_opt_entry;
 }
 
 void compare(char *a, char *b)
@@ -74,20 +78,20 @@ void compare(char *a, char *b)
     FILE *fp2 = fopen(b, "r");
 
     char line[16];
-    entry_c *pHead,*e;
-    pHead = (entry_c *) malloc (sizeof(entry_c));
+    opt_entry *pHead,*e;
+    pHead = (opt_entry *) malloc (sizeof(opt_entry));
     e = pHead;
     e->pNext = NULL;
 
-    hash_t *hash_table;
-    hash_table = create_hash_table_c();
+    hash_table *table;
+    table = create_hash_table();
 
     while(fgets(line,sizeof(line),fp1)) {
         while (line[i] != '\0')
             i++;
         line[i - 1] = '\0';
         i = 0;
-        append_c(line, hash_table);
+        append_ori(line, table);
     }
 
     while(fgets(line,sizeof(line),fp2)) {
@@ -95,6 +99,8 @@ void compare(char *a, char *b)
             i++;
         line[i - 1] = '\0';
         i = 0;
-        findName_c(line, hash_table);
+        find_lastname(line, table);
     }
+    fclose(fp1);
+    fclose(fp2);
 }

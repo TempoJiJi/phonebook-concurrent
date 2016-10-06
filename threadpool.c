@@ -106,7 +106,7 @@ threadpool_t *threadpool_create(int thread_count, int queue_size, int flags)
     /* Start worker threads */
     for (i = 0; i < thread_count; i++) {
         if (pthread_create(&(pool->threads[i]), NULL,
-                          threadpool_thread, (void*)pool) != 0) {
+                           threadpool_thread, (void*)pool) != 0) {
             threadpool_destroy(pool, 0);
             return NULL;
         }

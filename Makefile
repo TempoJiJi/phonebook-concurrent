@@ -3,11 +3,11 @@ CFLAGS_common ?= -Wall -std=gnu99
 CFLAGS_orig = -O0
 CFLAGS_opt  = -O0 -pthread -g 
 
-ifeq ($(strip $(COMPARE)),1)
-CFLAGS_opt += -DCOMPARE
+ifeq ($(strip $(CHECK)),1)
+CFLAGS_opt += -DCHECK
 endif
 
-EXEC = phonebook_orig phonebook_opt
+EXEC = phonebook_orig phonebook_opt lockfree_tpool
 all: $(EXEC)
 
 SRCS_common = main.c
@@ -23,7 +23,12 @@ phonebook_orig: $(SRCS_common) phonebook_orig.c phonebook_orig.h
 phonebook_opt: $(SRCS_common) phonebook_opt.c phonebook_opt.h  
 	$(CC) $(CFLAGS_common) $(CFLAGS_opt) \
 		-DIMPL="\"$@.h\"" -o $@ \
-		$(SRCS_common) $@.c threadpool.c
+		$(SRCS_common) $@.c threadpool.c 
+
+lockfree_tpool: $(SRCS_common) phonebook_opt.c phonebook_opt.h
+	$(CC) $(CFLAGS_common) $(CFLAGS_opt) -DLOCKFREE\
+		-DIMPL="\"phonebook_opt.h\"" -o $@ \
+		$(SRCS_common) phonebook_opt.c lockfree_tpool.c 
 
 run: $(EXEC)
 	echo 3 | sudo tee /proc/sys/vm/drop_caches
@@ -35,7 +40,7 @@ cache-test: $(EXEC)
 		./phonebook_orig
 	perf stat --repeat 100 \
 		-e cache-misses,cache-references,instructions,cycles \
-		./phonebook_opt
+		./lockfree_tpool.c
 
 output.txt: cache-test calculate
 	./calculate
@@ -53,5 +58,5 @@ compare: phonebook_opt
 clean:
 	$(RM) $(EXEC) *.o perf.* \
 	    calculate orig.txt opt.txt output.txt runtime.png \
-		aligned.txt compare_result entry_words.txt
+		aligned_field compare_result entry_words.txt
 	    
